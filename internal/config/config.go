@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path/filepath"
 )
@@ -39,7 +38,7 @@ func Read() (Config, error) {
 	defer file.Close()
 	// make an empty config
 	var cfg Config
-	decoder := json.NewDecoder()
+	decoder := json.NewDecoder(file)
 	// populate the config struct
 	if err := decoder.Decode(&cfg); err != nil {
 		return Config{}, err
