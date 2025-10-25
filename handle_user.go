@@ -29,7 +29,7 @@ func handlerLogin(s *state, cmd command) error {
 	return nil
 }
 
-func handleRegister(s *state, cmd command) error {
+func handlerRegister(s *state, cmd command) error {
 	if len(cmd.arguments) != 1 {
 		return fmt.Errorf("expected a name")
 	}
@@ -45,7 +45,7 @@ func handleRegister(s *state, cmd command) error {
 
 	}
 	_, err = s.db.GetUser(context.Background(),user.Name)
-	if err == nil {
+	if err != nil {
 		fmt.Println("user already exists")
 		os.Exit(1)
 	
@@ -54,6 +54,30 @@ func handleRegister(s *state, cmd command) error {
 	if err = s.cfg.SetUser(user.Name); err != nil {
 		return fmt.Errorf("couldn't set the user: %w", err)
 	}
-
+	fmt.Printf("registed new user %v", user)
 	return nil
+}
+
+func handlerReset(s *state, cmd command) error {
+	err := s.db.DeleteUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("coulnd't delete the users: %w", err)
+	}
+	fmt.Println("all users successsfully deleted!")
+	return nil
+}
+
+func handlerGetUsers(s *state, cmd command) error {
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting all users: %w", err)
+	}
+	for _, user := range users {
+		if s.cfg.CurrentUserName == user.Name{
+			fmt.Printf("* %s (current)\n", user.Name)
+			continue
+		}
+		fmt.Printf("* %s \n", user.Name)
+	}
+	return nil 
 }

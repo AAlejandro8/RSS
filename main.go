@@ -41,9 +41,11 @@ func main() {
 		callBackCommands: make(map[string]func(s *state, cmd command) error),
 	}
 	cmds.register("login", handlerLogin)
-	cmds.register("register", handleRegister)
+	cmds.register("register", handlerRegister)
+	cmds.register("reset", handlerReset)
+	cmds.register("users", handlerGetUsers)
+	cmds.register("agg", handlerAgg)
 
-	
 	if len(os.Args) < 2 {
 		fmt.Println("Error: must be more than two arguments")
 		os.Exit(1)
