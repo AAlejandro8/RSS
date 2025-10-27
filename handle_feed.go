@@ -93,3 +93,19 @@ func handlerFollowing(s *state, cmd command, user database.User) error {
 	}
 	return nil
 }
+
+func handlerUnfollow(s *state, cmd command, user database.User) error {
+	feed, err := s.db.GetQueryByURL(context.Background(),cmd.arguments[0])
+	if err != nil {
+		return err 
+	}
+	err = s.db.Unfollow(context.Background(), database.UnfollowParams{
+		UserID: user.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return fmt.Errorf("unable to unfollow: %w", err)
+	}
+	fmt.Println("Sucessfully unfollowed!")
+	return nil
+}

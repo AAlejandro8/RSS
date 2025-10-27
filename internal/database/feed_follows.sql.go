@@ -14,15 +14,9 @@ import (
 
 const createFeedFollow = `-- name: CreateFeedFollow :one
 WITH inserted_feed_follow AS (
-      INSERT INTO feed_follows(id, created_at, updated_at, user_id, feed_id)
-      VALUES(
-            $1,
-            $2,
-            $3,
-            $4,
-            $5
-      )
-      RETURNING id, created_at, updated_at, user_id, feed_id
+    INSERT INTO feed_follows (id, created_at, updated_at, user_id, feed_id)
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING id, created_at, updated_at, user_id, feed_id
 )
 SELECT 
       inserted_feed_follow.id, inserted_feed_follow.created_at, inserted_feed_follow.updated_at, inserted_feed_follow.user_id, inserted_feed_follow.feed_id,
@@ -77,8 +71,8 @@ SELECT feed_follows.id, feed_follows.created_at, feed_follows.updated_at, feed_f
 users.name AS user_name, 
 feeds.name AS feed_name
 FROM feed_follows
-JOIN users ON users.id = feed_follows.user_id
-JOIN feeds ON feeds.id = feed_follows.feed_id
+INNER JOIN users ON users.id = feed_follows.user_id
+INNER JOIN feeds ON feeds.id = feed_follows.feed_id
 WHERE feed_follows.user_id = $1
 `
 
@@ -121,4 +115,19 @@ func (q *Queries) GetFeedFollowsForUser(ctx context.Context, userID uuid.UUID) (
 		return nil, err
 	}
 	return items, nil
+}
+
+const unfollow = `-- name: Unfollow :exec
+DELETE FROM feed_follows
+WHERE user_id = $1 AND feed_id = $2
+`
+
+type UnfollowParams struct {
+	UserID uuid.UUID
+	FeedID uuid.UUID
+}
+
+func (q *Queries) Unfollow(ctx context.Context, arg UnfollowParams) error {
+	_, err := q.db.ExecContext(ctx, unfollow, arg.UserID, arg.FeedID)
+	return err
 }
