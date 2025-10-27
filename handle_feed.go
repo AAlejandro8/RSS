@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-
 	"github.com/AAlejandro8/RSS/internal/database"
 	"github.com/google/uuid"
 )
@@ -22,7 +21,7 @@ func handlerAddFeed(s *state, cmd command) error {
 	}
 	name := cmd.arguments[0]
 	url := cmd.arguments[1]
-	_, err = s.db.CreateFeed(context.Background(), database.CreateFeedParams{
+	newFeed, err := s.db.CreateFeed(context.Background(), database.CreateFeedParams{
 		ID: uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -33,7 +32,18 @@ func handlerAddFeed(s *state, cmd command) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Feed created successfully:")
+	// Now follow the feed you create
+	_, err = s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID: currentUser.ID,
+		FeedID:  newFeed.ID, 
+	})
+	if err != nil {
+		return err
+	}
+	fmt.Println("Feed created successfully and followed")
 	return nil
 }
 
@@ -46,6 +56,50 @@ func handlerFeed(s *state, cmd command) error {
 		return fmt.Errorf("no feeds found")
 	}
 	for _, data  := range feed {
+		fmt.Println(data.FeedName)
+		fmt.Println(data.UserName)
+	}
+	return nil
+}
+
+func handlerFollow(s *state, cmd command) error {
+	currentUser, err := s.db.GetUser(context.Background(),s.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	if len(cmd.arguments) != 1 {
+		return fmt.Errorf("not enough args: %s", cmd.name)
+	}
+	feed, err := s.db.GetQueryByURL(context.Background(),cmd.arguments[0])
+	if err != nil {
+		return err
+	}
+	followRecord, err := s.db.CreateFeedFollow(context.Background(), database.CreateFeedFollowParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		UserID: currentUser.ID,
+		FeedID: feed.ID,
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(followRecord.FeedName)
+	fmt.Println(followRecord.UserName)
+	return nil
+}
+
+func handlerFollowing(s *state, cmd command) error {
+	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	if err != nil {
+		return err
+	}
+	FeedFollows, err := s.db.GetFeedFollowsForUser(context.Background(), currentUser.ID)
+	if err != nil {
+		return err
+	}
+	for _, data := range FeedFollows{
 		fmt.Println(data.FeedName)
 		fmt.Println(data.UserName)
 	}
