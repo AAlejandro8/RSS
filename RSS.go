@@ -7,6 +7,7 @@ import (
 	"html"
 	"io"
 	"net/http"
+	"time"
 )
 
 type RSSFeed struct {
@@ -65,14 +66,15 @@ func fetchFeed(ctx context.Context, feedURL string) (*RSSFeed, error) {
 }
 
 func handlerAgg(s *state, cmd command) error {
-	feed, err := fetchFeed(context.Background(), "https://www.wagslane.dev/index.xml")
+	timeBetweenRequests, err := time.ParseDuration(cmd.arguments[0])
 	if err != nil {
 		return err
 	}
-
+	fmt.Printf("Collecting feeds every: %s\n", timeBetweenRequests)
 	
-      fmt.Printf("%#v\n", feed)
-
-
-	return nil
+	ticker := time.NewTicker(timeBetweenRequests)
+	for ; ; <- ticker.C {
+		scrapeFeeds(s)
+	}
+	
 }

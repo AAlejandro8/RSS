@@ -7,6 +7,7 @@ import (
 	"time"
 	"github.com/AAlejandro8/RSS/internal/database"
 	"github.com/google/uuid"
+	"log"
 )
 
 
@@ -107,5 +108,24 @@ func handlerUnfollow(s *state, cmd command, user database.User) error {
 		return fmt.Errorf("unable to unfollow: %w", err)
 	}
 	fmt.Println("Sucessfully unfollowed!")
+	return nil
+}
+
+func scrapeFeeds(s *state) error {
+	nextFeed, err := s.db.GetNextFeedToFetch(context.Background())
+	if err != nil {
+		return err
+	}
+	if err = s.db.MarkFeedFetched(context.Background(), nextFeed.ID); err != nil {
+		return err
+	}
+	fetchedFeed, err := fetchFeed(context.Background(), nextFeed.Url)
+	if err != nil {
+		return err
+	}
+	for _, item := range fetchedFeed.Channel.Item {
+		fmt.Printf("Found feed: %s\n",item.Title)
+	}
+	log.Printf("Feed %s collected, %v posts found", nextFeed.Name, len(fetchedFeed.Channel.Item))
 	return nil
 }
