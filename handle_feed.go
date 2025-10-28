@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 	"github.com/AAlejandro8/RSS/internal/database"
 	"github.com/google/uuid"
-	"log"
 )
 
 
@@ -123,9 +123,48 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return err
 	}
-	for _, item := range fetchedFeed.Channel.Item {
-		fmt.Printf("Found feed: %s\n",item.Title)
+	if _, err := s.db.CreatePost(context.Background(), database.CreatePostParams{
+		ID: uuid.New(),
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+		Title: fetchedFeed.Channel.Title,
+		Url: fetchedFeed.Channel.Link,
+		Description: fetchedFeed.Channel.Description,
+		PublishedAt: time.Now().UTC(),
+		FeedID: nextFeed.ID,
+	}); err != nil {
+		return err
 	}
-	log.Printf("Feed %s collected, %v posts found", nextFeed.Name, len(fetchedFeed.Channel.Item))
+	fmt.Println("post successfully logged to db")
+	return nil
+}
+
+func handlerBrowse(s *state, cmd command, user database.User) error {
+	limit := 2
+	if len(cmd.arguments) == 1{
+		if specifiedLimit, err := strconv.Atoi(cmd.arguments[0]); err == nil{
+			limit = specifiedLimit
+		}else{
+			return fmt.Errorf("invalid limit: %w", err)
+		}
+	}
+
+	posts, err := s.db.GetPostsForUser(context.Background(), database.GetPostsForUserParams{
+		UserID: user.ID,
+		Limit: int32(limit),
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Found %d posts for user %s:\n", len(posts), user.Name)
+	for _, post := range posts {
+		fmt.Printf("%s from %s\n", post.PublishedAt.Format("Mon Jan 2"), post.FeedName)
+		fmt.Printf("--- %s ---\n", post.Title)
+		fmt.Printf("    %v\n", post.Description)
+		fmt.Printf("Link: %s\n", post.Url)
+		fmt.Println("=====================================")
+	}
+	
 	return nil
 }
